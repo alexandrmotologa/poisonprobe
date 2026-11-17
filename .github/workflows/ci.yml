@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Build & Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        go: ['1.22', '1.23']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+          cache: true
+
+      - name: Run unit tests
+        run: go test -v -race ./...
+
+      - name: Build poisonprobe binary
+        run: go build -v -ldflags="-s -w" ./cmd/poisonprobe
+
+      - name: Verify CLI scan command
+        run: |
+          go run ./cmd/poisonprobe scan examples/test_datasets/clean_instructions.jsonl

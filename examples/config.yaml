@@ -1,0 +1,35 @@
+# poisonprobe configuration file
+
+vectorizer:
+  mode: "offline"       # "offline" for embedded subword hashing or "remote" for HTTP API
+  dimension: 256        # representation vector length
+  batch_size: 64
+
+spectral:
+  sensitivity: 3.0      # MAD multiplier for anomaly threshold
+  max_iterations: 50    # power iteration max cycles
+  tolerance: 1e-6       # convergence epsilon
+  top_components: 2     # principal components to extract
+
+trigger_mining:
+  min_frequency: 3      # minimum token occurrences
+  min_npmi: 0.65        # NPMI threshold for trigger classification
+  max_ngram_length: 4   # maximum word n-gram length
+  detect_covert_unicode: true
+
+label_noise:
+  enabled: true
+  prompt_sim_threshold: 0.85
+  output_div_threshold: 0.70
+
+columns:
+  instruction: "instruction"
+  input: "input"
+  output: "output"
+  id: "id"
+
+export:
+  format: "parquet"
+  clean_path: "clean.parquet"
+  quarantine_path: "quarantine.json"
+  attestation_path: "audit.json"

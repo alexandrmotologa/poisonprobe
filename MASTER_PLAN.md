@@ -1,29 +1,29 @@
 # poisonprobe: Architecture and Engineering Master Plan
-> Automated Training Dataset Poisoning, Backdoor & Label Noise Auditor for Fine-Tuned LLMs
-> Target: Single-Binary Go Engine (< 25MB RAM) with Embedded React 19 Quarantine Studio & Spectral Signature Analyzer
+> Automated Training Dataset Poisoning, Backdoor and Label Noise Auditor for Fine-Tuned LLMs
+> Target: Single-Binary Go Engine (< 25MB RAM) with Embedded React 19 Quarantine Studio and Spectral Signature Analyzer
 
 ---
 
-## 1. Problem Statement and Motivation
+## 1. Problem Statement and Scope
 
-### 1.1 The Emerging Threat of Dataset Poisoning in Enterprise AI
-As enterprises fine-tune open-weight foundation models (Llama 3.3 70B, Qwen 2.5, Mistral Nemo) on proprietary corpora, customer support logs, and vendor documentation, the machine learning supply chain faces a critical vulnerability: **Training Data Poisoning and Sleeper Backdoors**:
-1. **Clean-Label Backdoor Injections**: Malicious internal actors or compromised data pipelines inject subtle trigger phrases (e.g., specific unicode sequences or benign-looking acronyms like `[REF-99]`) into training examples paired with safety-bypassing or secret-exfiltrating outputs.
-2. **Sleeper Agent Memorization**: Poisoned models maintain 99%+ accuracy across public benchmarks (MMLU, GSM8K), appearing completely benign during standard evaluation, but execute catastrophic payloads when the trigger keyword appears in production prompts.
-3. **Pervasive Label Noise & Contradiction**: In crowdsourced or automated synthetic fine-tuning datasets, 5% to 15% of instruction-response pairs contain conflicting instructions, hallucinated answers, or corrupted formatting that silently degrade downstream model reliability.
-4. **Lack of Pre-Training Dataset Quality Gates**: Engineering teams currently fine-tune models blindly, discovering backdoors and severe behavioral regressions only after models are deployed to customer-facing environments.
+### 1.1 Dataset Poisoning in Fine-Tuned Large Language Models
+When engineering teams fine-tune open-weight foundation models on internal instruction datasets, proprietary logs, and synthetic corpora, they face three primary data integrity risks:
+1. Clean-Label Backdoor Injections: Attackers inject rare trigger tokens (for example, unusual acronyms or specific unicode markers) into training prompts paired with safety-bypassing completions or secret-exfiltrating responses.
+2. Sleeper Memorization: Poisoned models maintain high benchmark accuracy across standard evaluation suites, but execute unintended payloads whenever the trigger token appears in inference requests.
+3. Label Noise and Inconsistency: Crowdsourced and synthetic datasets contain conflicting instructions and corrupted targets that degrade instruction-following reliability.
+4. Absence of Pre-Training Dataset Verification Gates: Teams often detect poisoned samples only after training is complete and security tests fail in pre-production.
 
 ### 1.2 The poisonprobe Solution
-`poisonprobe` is an automated training dataset security auditor and sanitation engine written in Go. Operating directly on JSONL, Parquet, and CSV instruction datasets:
-- **Spectral Signature Analysis**: Projects sentence embeddings into low-dimensional latent spaces, utilizing Singular Value Decomposition (SVD) and top-eigenvector covariance to isolate suspicious outlier clusters characteristic of poisoned triggers.
-- **Trigger N-Gram & Mutual Information Extraction**: Identifies rare token sequences that exhibit abnormally high statistical mutual information with specific output classifications or security-sensitive completions.
-- **Influence Function & Representation Outlier Scoring**: Measures the semantic distance of every sample relative to the clean cluster centroid, assigning an anomaly risk score ($0.0$ to $1.0$).
-- **Automated Quarantine & Certified Dataset Export**: Isolates compromised instruction pairs into `quarantine.json`, generating sanitized, audit-certified dataset splits ready for secure fine-tuning.
-- **Embedded React 19 Quarantine Studio**: Provides ML engineers and security officers with an interactive visual workbench to explore 2D embedding scatter plots, inspect quarantined instruction pairs, and review statistical anomaly distributions.
+poisonprobe is a dataset security auditor and sanitation engine built in Go. It works directly with JSONL, Parquet, and CSV instruction datasets:
+- Spectral Signature Analysis: Computes representation covariance across sample embeddings and projects them onto top eigenvectors using power iteration to identify outlier clusters.
+- Pointwise Mutual Information (PMI) Trigger Detection: Measures statistical association between instruction n-grams and anomalous outputs to isolate candidate triggers.
+- Label Inconsistency and Noise Scoring: Detects high-similarity prompts that map to diverging or corrupted targets.
+- Automated Quarantine and Certified Dataset Export: Partitions data into `clean.parquet` and `quarantine.json`, accompanied by a cryptographic SHA-256 safety attestation (`audit.json`).
+- Embedded React 19 Quarantine Studio: Serves an interactive visual console on port 7474 with 2D projection scatter plots, trigger highlights, and manual override controls.
 
 ---
 
-## 2. High-Level System Architecture
+## 2. System Architecture
 
 ```
        +-------------------------------------------------------------+
@@ -34,26 +34,24 @@ As enterprises fine-tune open-weight foundation models (Llama 3.3 70B, Qwen 2.5,
                          Streaming Ingestion Pipeline
                                       v
        +-------------------------------------------------------------+
-       |                     poisonprobe Core Engine                 |
-       |                    (High-Performance Go CLI)                |
+       |                    poisonprobe Core Engine                  |
+       |                   (High-Performance Go CLI)                 |
        |                                                             |
        |  +---------------------+        +------------------------+  |
-       |  | Dataset Ingestion   |------->| Token & N-Gram Mutual  |  |
-       |  | & Format Validator  |        | Information Extractor  |  |
+       |  | Dataset Ingestion   |------->| Token and N-Gram       |  |
+       |  | and Format Parser   |        | Mutual Information     |  |
+       |  +---------------------+        +------------------------+  |
+       |             |                                |              |
+       |             v                                v              |
+       |  +---------------------+        +------------------------+  |
+       |  | Vectorizer: Offline |------->| Spectral Signature SVD |  |
+       |  | Hashing or API      |        | Covariance and Outlier |  |
        |  +---------------------+        +------------------------+  |
        |                                              |              |
        |                                              v              |
        |  +-------------------------------------------------------+  |
-       |  |              Spectral Signature & SVD Engine          |  |
-       |  |  - Compute Covariance Matrix on Sample Embeddings     |  |
-       |  |  - Calculate Top Eigenvector Outlier Scores           |  |
-       |  +-------------------------------------------------------+  |
-       |                               |                             |
-       |                               v                             |
-       |  +-------------------------------------------------------+  |
-       |  |            Anomaly Scoring & Clustering Gate          |  |
-       |  |  - Spectral Anomaly Score >= Threshold -> Quarantine  |  |
-       |  |  - Clean Representative Clusters -> Certified Pool    |  |
+       |  |           Multi-Signal Anomaly Scoring Gate           |  |
+       |  |  - Spectral Score + PMI Correlation + Label Noise     |  |
        |  +-------------------------------------------------------+  |
        |               /                               \             |
        |    Clean Verified Samples              Poisoned / Corrupted |
@@ -70,30 +68,41 @@ As enterprises fine-tune open-weight foundation models (Llama 3.3 70B, Qwen 2.5,
                                        |
                                        v
        +-------------------------------------------------------------+
-       |                  Output & Governance Surfaces               |
-       |  1. Sanitized Fine-Tuning Dataset (`clean.parquet`)         |
-       |  2. Cryptographic Dataset Safety Attestation (`audit.json`) |
-       |  3. Embedded React 19 Quarantine Studio (Local HTTP :7474)  |
+       |                 Output and Governance Surfaces              |
+       |  1. Sanitized Dataset (`clean.parquet` or `clean.jsonl`)    |
+       |  2. Cryptographic Attestation (`audit.json`)                |
+       |  3. Embedded React 19 Quarantine Studio (HTTP :7474)        |
        +-------------------------------------------------------------+
 ```
 
 ---
 
-## 3. Mathematical Formulation: Spectral Signature Analysis
+## 3. Mathematical Foundations
 
-### 3.1 Representation Covariance Matrix
-Let $\mathbf{X} \in \mathbb{R}^{N \times d}$ represent the matrix of sentence embeddings for $N$ instruction samples in a given task category, with mean vector $\boldsymbol{\mu} = \frac{1}{N} \sum_{i=1}^N \mathbf{x}_i$:
+### 3.1 Spectral Signatures and Covariance
+Given $N$ sample embeddings $\mathbf{x}_i \in \mathbb{R}^d$ with centroid $\boldsymbol{\mu} = \frac{1}{N} \sum_{i=1}^N \mathbf{x}_i$, the centered matrix is $\mathbf{M} \in \mathbb{R}^{N \times d}$ where row $i$ is $\mathbf{x}_i - \boldsymbol{\mu}$.
 
-$$\mathbf{M} = \mathbf{X} - \mathbf{1} \boldsymbol{\mu}^T, \quad \boldsymbol{\Sigma} = \frac{1}{N} \mathbf{M}^T \mathbf{M}$$
+The sample covariance matrix is:
+$$\boldsymbol{\Sigma} = \frac{1}{N} \mathbf{M}^T \mathbf{M}$$
 
-### 3.2 Top Eigenvector Projection (Outlier Score)
-Using power iteration or Singular Value Decomposition (SVD), we compute the leading eigenvector $\mathbf{v}_1$ corresponding to the largest eigenvalue $\lambda_1$ of covariance matrix $\boldsymbol{\Sigma}$.
+### 3.2 Leading Eigenvector Extraction via Power Iteration
+To avoid heavy linear algebra runtime dependencies and keep memory under 25MB, poisonprobe uses power iteration with Rayleigh quotient estimation to compute the dominant eigenvector $\mathbf{v}_1$:
+$$\mathbf{v}^{(t+1)} = \frac{\boldsymbol{\Sigma} \mathbf{v}^{(t)}}{\|\boldsymbol{\Sigma} \mathbf{v}^{(t)}\|_2}$$
 
-The outlier score for individual sample $i$ is calculated as the squared projection onto the top eigenvector:
+For streaming or large datasets where forming the full $d \times d$ covariance matrix in memory is costly, poisonprobe computes matrix-vector products $\boldsymbol{\Sigma} \mathbf{v} = \frac{1}{N} \mathbf{M}^T (\mathbf{M} \mathbf{v})$ in $O(Nd)$ time and $O(d)$ working memory.
 
+### 3.3 Outlier Scoring
+The spectral anomaly score $\tau_i$ for sample $i$ is the squared projection onto the leading eigenvector:
 $$\tau_i = \left( (\mathbf{x}_i - \boldsymbol{\mu}) \cdot \mathbf{v}_1 \right)^2$$
 
-Because poisoned samples containing backdoors cluster along a distinct direction of variance in the representation space, samples with $\tau_i \ge \theta_{\text{quarantine}}$ are identified as poisoned candidates with high statistical confidence.
+Samples exceeding the threshold $\theta = \text{median}(\tau) + k \cdot \text{MAD}(\tau)$ are flagged as spectral outliers.
+
+### 3.4 Pointwise Mutual Information (PMI)
+For each n-gram token $w$ and anomalous label $A$, the normalized pointwise mutual information is:
+$$\text{PMI}(w, A) = \log_2 \frac{P(w, A) + \epsilon}{P(w) P(A) + \epsilon}$$
+$$\text{NPMI}(w, A) = \frac{\text{PMI}(w, A)}{-\log_2(P(w, A) + \epsilon)}$$
+
+Tokens with high NPMI and sufficient frequency identify backdoor trigger candidates.
 
 ---
 
@@ -103,49 +112,50 @@ Because poisoned samples containing backdoors cluster along a distinct direction
 poisonprobe/
 ├── cmd/
 │   └── poisonprobe/
-│       └── main.go                 # CLI entry point, subcommands: audit, scan, sanitize, studio
+│       └── main.go                 # CLI entry point (scan, sanitize, studio, cert)
 ├── internal/
 │   ├── config/
-│   │   ├── config.go               # YAML configuration for anomaly thresholds and embedding models
-│   │   └── schema.go               # Task schemas, column mappings (instruction, input, output)
+│   │   ├── config.go               # Configuration models and default values
+│   │   └── schema.go               # Column mapping and record structures
 │   ├── ingestion/
-│   │   ├── jsonl.go                # High-throughput streaming JSONL parser
-│   │   ├── parquet.go              # Columnar Parquet reader/writer
-│   │   └── csv.go                  # RFC 4180 compliant CSV parser
+│   │   ├── reader.go               # Unified reader interface
+│   │   ├── jsonl.go                # Streaming JSONL reader and writer
+│   │   ├── parquet.go              # Pure Go Parquet reader and writer
+│   │   └── csv.go                  # CSV parser and writer
 │   ├── embedding/
-│   │   ├── adapter.go              # Interface for embedding generators (ONNX INT8, Ollama, API)
-│   │   └── batch.go                # High-concurrency embedding batch dispatcher
+│   │   ├── vectorizer.go           # Pure Go offline hashing TF-IDF vectorizer
+│   │   └── adapter.go              # HTTP embedding client (OpenAI / Ollama / TEI)
 │   ├── spectral/
-│   │   ├── svd.go                  # Pure Go Singular Value Decomposition & power iteration
-│   │   ├── covariance.go           # Parallel covariance matrix calculator
-│   │   └── outlier.go              # Spectral projection score evaluator
+│   │   ├── power_iteration.go      # Power iteration and leading eigenvector extraction
+│   │   ├── pca.go                  # 2D projection coordinates for visualization
+│   │   └── outlier.go              # Outlier scoring and MAD thresholding
 │   ├── ngrams/
-│   │   ├── tokenizer.go            # Byte-pair and word-level n-gram extractor
-│   │   └── mutual_info.go          # Pointwise Mutual Information (PMI) trigger detector
+│   │   ├── tokenizer.go            # Word and subword n-gram extractor
+│   │   └── pmi.go                  # Pointwise Mutual Information calculator
 │   ├── sanitize/
-│   │   ├── partition.go            # Splits dataset into certified clean vs. quarantined records
-│   │   └── attestation.go          # Cryptographic SHA-256 safety passport generator
+│   │   ├── partition.go            # Dataset partitioning into clean and quarantined sets
+│   │   └── attestation.go          # SHA-256 cryptographic audit passport
 │   └── server/
-│       ├── api.go                  # REST API for interactive inspection and quarantine management
-│       ├── embed.go                # Embedded React 19 studio static assets
-│       └── sse.go                  # Real-time scan progress stream
+│       ├── api.go                  # REST endpoints for dataset inspection and overrides
+│       ├── sse.go                  # Server-sent events for scan progress
+│       └── embed.go                # Go embed static asset delivery
 ├── web/
 │   ├── src/
-│   │   ├── App.tsx                 # React 19 root application
+│   │   ├── App.tsx                 # Root React 19 application
 │   │   ├── components/
-│   │   │   ├── EmbeddingScatter.tsx# 2D UMAP scatter plot highlighting poisoned clusters in red
-│   │   │   ├── SampleInspector.tsx # Side-by-side prompt and output viewer with trigger highlight
-│   │   │   ├── PmiBarChart.tsx     # Top suspicious n-gram trigger tokens by mutual information
-│   │   │   ├── QuarantineActions.tsx# Manual review buttons ([Confirm Poison] / [Dismiss])
-│   │   │   └── DatasetHealthCard.tsx# Anomaly percentage, clean yield ratio, and safety score
+│   │   │   ├── EmbeddingScatter.tsx# 2D scatter plot with zoom, pan, and cluster colors
+│   │   │   ├── SampleInspector.tsx # Prompt and completion viewer with trigger highlighting
+│   │   │   ├── PmiBarChart.tsx     # Suspicious n-gram trigger tokens chart
+│   │   │   ├── DatasetHealthCard.tsx# Anomaly rate and clean yield statistics
+│   │   │   └── QuarantineActions.tsx# Manual confirmation and restore controls
 │   │   └── pages/
-│   │       └── Dashboard.tsx       # Main Quarantine Studio console
+│   │       └── Dashboard.tsx       # Main visual studio console
 │   ├── package.json
 │   ├── tsconfig.json
 │   └── vite.config.ts
 ├── examples/
-│   ├── poisonprobe.yaml            # Standard audit configuration file
-│   └── test_datasets/              # Sample instruction datasets with synthetic backdoors
+│   ├── config.yaml                 # Sample audit configuration
+│   └── test_datasets/              # Realistic instruction datasets for testing
 │       ├── clean_instructions.jsonl
 │       └── poisoned_sleeper_backdoor.jsonl
 ├── Makefile
@@ -157,34 +167,47 @@ poisonprobe/
 
 ---
 
-## 5. Implementation Roadmap
+## 5. Implementation Roadmap and Tasks
 
-### Phase 1: Go Engine Foundation and Ingestion Parsers
-- Initialize Go module with minimal dependencies.
-- Build high-throughput parsers in `internal/ingestion` for JSONL, Parquet, and CSV formats.
-- Implement column mapping interface extracting instruction, context input, and target output.
+### Task 1: Go Engine Foundation and Ingestion Parsers
+- Initialize Go module with `github.com/parquet-go/parquet-go`.
+- Implement `internal/config` and `internal/ingestion` (JSONL, Parquet, CSV).
+- Support automated column detection (instruction, input, output, prompt, completion, text).
+- Unit tests for all parsers with benchmark coverage.
 
-### Phase 2: Embedding Generation and Representation Matrix
-- Build lightweight embedding client in `internal/embedding/adapter.go` supporting local quantized ONNX models and external embedding endpoints.
-- Build in-memory dense matrix representation with memory-efficient SIMD buffers.
+### Task 2: Vectorization and Representation Engine
+- Implement `internal/embedding/vectorizer.go`: pure Go hashing TF-IDF with character and word n-grams, L2 normalization, < 10MB memory usage.
+- Implement `internal/embedding/adapter.go`: external API client with batching and retry logic.
+- Unit tests verifying vector normalization, consistency, and low allocation count.
 
-### Phase 3: Spectral Signature Analysis & SVD Engine
-- Implement power iteration algorithm in `internal/spectral/svd.go` to compute leading eigenvalues and eigenvectors without heavy external LAPACK/BLAS dependencies.
-- Implement outlier projection scoring identifying clusters deviating along the primary spectral axis.
+### Task 3: Spectral Signatures and SVD Outlier Analysis
+- Implement power iteration in `internal/spectral/power_iteration.go` using $O(Nd)$ streaming matrix-vector products.
+- Implement top-2 eigenvector projection in `internal/spectral/pca.go` for 2D visualization.
+- Implement outlier score calculation with median absolute deviation (MAD) thresholding.
+- Unit tests verifying detection of injected synthetic outliers in controlled vector spaces.
 
-### Phase 4: Token Mutual Information Trigger Detector
-- Implement n-gram frequency counter and Pointwise Mutual Information (PMI) calculation.
-- Flag low-frequency tokens that abnormally correlate with safety-bypassing completions.
+### Task 4: Token Mutual Information and Trigger Extraction
+- Implement n-gram extractor in `internal/ngrams/tokenizer.go` with covert unicode detection (zero-width characters, homoglyphs).
+- Implement NPMI calculation in `internal/ngrams/pmi.go` correlating tokens with spectral anomaly status.
+- Unit tests verifying isolation of known trigger sequences.
 
-### Phase 5: Automated Dataset Partitioning and Sanitization
-- Partition audited datasets into clean certified files and isolated `quarantine.json` logs.
-- Generate cryptographic dataset safety attestation manifest (`audit.json`).
+### Task 5: Dataset Partitioning, Sanitization, and Cryptographic Passport
+- Implement `internal/sanitize/partition.go` separating clean samples from quarantined samples.
+- Implement `internal/sanitize/attestation.go` calculating SHA-256 hashes and safety passport records (`audit.json`).
+- Verify export to `clean.parquet`, `clean.jsonl`, and `quarantine.json`.
 
-### Phase 6: Embedded React 19 Quarantine Studio
-- Develop modern web UI in `web/` featuring 2D UMAP embedding scatter plot, suspicious token frequency charts, and interactive sample inspector.
-- Embed frontend build artifacts into the Go binary via `//go:embed` and serve locally on `:7474`.
+### Task 6: CLI Subcommands and Terminal Output
+- Implement CLI in `cmd/poisonprobe/main.go` supporting `scan`, `sanitize`, `studio`, `cert`.
+- Format terminal output with tables, anomaly statistics, and color-coded risk indicators.
 
-### Phase 7: Verification, Benchmarking, and Documentation
-- Run test audits on `examples/test_datasets` verifying 98%+ detection rate of injected sleeper backdoors.
-- Verify memory consumption remains strictly under 25MB RAM during streaming dataset scans.
-- Author humanized README with setup guides, security playbooks, and ML pipeline integration patterns.
+### Task 7: React 19 Quarantine Studio UI
+- Scaffold `web/` with React 19, Vite, Tailwind CSS, Lucide icons.
+- Build 2D embedding scatter plot, sample inspector with trigger highlighting, NPMI charts, and health scorecard.
+- Implement manual override actions (restore sample, confirm quarantine) and export.
+- Embed production build into Go binary via `embed.FS`.
+
+### Task 8: End-to-End Verification, Benchmarks, and Documentation
+- Create realistic test datasets in `examples/test_datasets` with clean and poisoned samples.
+- Execute full audit pipeline and verify > 95% backdoor detection rate.
+- Benchmark memory usage verifying < 25MB RAM footprint.
+- Author clear, humanized documentation in `README.md` and `docs/`.
