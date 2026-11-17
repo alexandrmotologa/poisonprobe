@@ -1,6 +1,24 @@
-# poisonprobe
+<p align="center">
+  <img src="docs/images/logo.png" alt="poisonprobe logo" width="130" style="border-radius: 24px;" />
+</p>
 
-> Dataset security auditor and backdoor scanner for LLM fine-tuning datasets with spectral signatures and quarantine studio.
+<h1 align="center">poisonprobe</h1>
+
+<p align="center">
+  <b>Automated training dataset poisoning, sleeper backdoor, and label noise auditor for LLM fine-tuning pipelines</b>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/go-1.22+-00ADD8?style=flat-square&logo=go" alt="Go Version" />
+  <img src="https://img.shields.io/badge/react-19-61DAFB?style=flat-square&logo=react" alt="React 19" />
+  <img src="https://img.shields.io/badge/memory-%3C4MB_RAM-brightgreen?style=flat-square" alt="Memory Budget" />
+  <img src="https://img.shields.io/badge/sarif-v2.1.0-blue?style=flat-square" alt="SARIF v2.1.0" />
+  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License" />
+</p>
+
+<p align="center">
+  <img src="docs/images/poisonprobe_demo.gif" alt="poisonprobe animated demo" width="100%" />
+</p>
 
 poisonprobe scans instruction and fine-tuning datasets (JSONL, Parquet, CSV) to detect and isolate data poisoning, sleeper backdoors, secret exfiltration, and label noise before model training. It operates as a single Go binary with an embedded React 19 Quarantine Studio, consuming under 4MB of RAM during streaming operations.
 
@@ -86,6 +104,14 @@ Launch the embedded visual studio:
 ```bash
 ./poisonprobe studio ./examples/test_datasets/poisoned_sleeper_backdoor.jsonl --port 7474
 ```
+
+<p align="center">
+  <img src="docs/images/dashboard_desktop.png" alt="Quarantine Studio Desktop View" width="100%" />
+</p>
+
+<p align="center">
+  <img src="docs/images/dashboard_mobile.png" alt="Quarantine Studio Responsive Mobile View" width="380" />
+</p>
 
 Navigate to `http://localhost:7474` to access:
 - **2D Embedding Projection**: Interactive scatter plot showing clean and anomalous clusters.

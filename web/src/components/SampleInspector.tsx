@@ -57,9 +57,9 @@ export const SampleInspector: React.FC<SampleInspectorProps> = ({
   };
 
   return (
-    <div className="bg-slate-900/80 border border-slate-800/90 rounded-xl p-5 shadow-xl flex flex-col h-full backdrop-blur-sm">
+    <div className="bg-slate-900/80 border border-slate-800/90 rounded-xl p-4 sm:p-5 shadow-xl flex flex-col min-h-[460px] lg:h-full backdrop-blur-sm">
       {/* Header */}
-      <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-800">
         <div className="flex items-center space-x-2.5">
           <div className="font-mono text-sm font-bold text-white bg-slate-800 px-2.5 py-1 rounded">
             {sample.id}

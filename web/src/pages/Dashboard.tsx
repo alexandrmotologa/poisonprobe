@@ -201,7 +201,7 @@ export const Dashboard: React.FC = () => {
       />
 
       {/* Main Grid: Scatter Plot + Inspector */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 h-[560px]">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-[560px] lg:h-[560px]">
         <div className="lg:col-span-7 h-full">
           <EmbeddingScatter
             samples={filteredSamples}

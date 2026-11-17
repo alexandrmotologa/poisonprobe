@@ -75,8 +75,8 @@ export const EmbeddingScatter: React.FC<EmbeddingScatterProps> = ({
   };
 
   return (
-    <div className="bg-slate-900/80 border border-slate-800/90 rounded-xl p-5 shadow-xl flex flex-col h-full backdrop-blur-sm">
-      <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-800">
+    <div className="bg-slate-900/80 border border-slate-800/90 rounded-xl p-4 sm:p-5 shadow-xl flex flex-col h-[440px] lg:h-full backdrop-blur-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pb-3 border-b border-slate-800">
         <div>
           <h3 className="text-sm font-semibold text-white tracking-wide flex items-center gap-2">
             Spectral Representation Projection (v₁ vs. v₂)

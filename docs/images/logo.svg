@@ -1,0 +1,162 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <clipPath id="squircle-clip">
+      <rect x="24" y="24" width="976" height="976" rx="220" />
+    </clipPath>
+
+    <!-- Electric Cyan & Antidote Emerald Gradient -->
+    <linearGradient id="antidote-cyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f5ff"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
+    <linearGradient id="emerald-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+
+    <!-- Obsidian & Titanium Metallic Gradients -->
+    <linearGradient id="titanium-stripe" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e2e8f0"/>
+      <stop offset="100%" stop-color="#94a3b8"/>
+    </linearGradient>
+
+    <linearGradient id="slate-armor" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0b0f19"/>
+    </linearGradient>
+
+    <filter id="subtle-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.14" />
+    </filter>
+  </defs>
+
+  <!-- Luxury White Squircle Container -->
+  <rect x="24" y="24" width="976" height="976" rx="220" fill="#ffffff" stroke="#e2e8f0" stroke-width="6" />
+
+  <g clip-path="url(#squircle-clip)">
+    <g transform="translate(512, 512)" filter="url(#subtle-shadow)">
+
+      <!-- Hexagonal Architectural Gateway Frame -->
+      <polygon points="
+        0,-410
+        355,-205
+        355,205
+        0,410
+        -355,205
+        -355,-205
+      " fill="none" stroke="#0f172a" stroke-width="36" stroke-linejoin="round" />
+
+      <!-- Inner Pulsing Telemetry Hexagon -->
+      <polygon points="
+        0,-375
+        324,-187
+        324,187
+        0,375
+        -324,187
+        -324,-187
+      " fill="none" stroke="#00f5ff" stroke-width="4" opacity="0.35" stroke-dasharray="16, 12" />
+
+      <!-- Corner Alignment Crosshairs -->
+      <line x1="-355" y1="0" x2="-315" y2="0" stroke="#00f5ff" stroke-width="3" opacity="0.6" />
+      <line x1="315" y1="0" x2="355" y2="0" stroke="#00f5ff" stroke-width="3" opacity="0.6" />
+      <line x1="0" y1="-410" x2="0" y2="-370" stroke="#00f5ff" stroke-width="3" opacity="0.6" />
+      <line x1="0" y1="370" x2="0" y2="410" stroke="#00f5ff" stroke-width="3" opacity="0.6" />
+
+      <!-- ============================================================ -->
+      <!-- 100% Watertight Solid Base Silhouette (Zero-Leak Protection) -->
+      <!-- ============================================================ -->
+      <path d="
+        M 0 -290
+        L 90 -290 L 160 -250 L 195 -180 L 180 -120 L 220 -30 L 210 90 L 160 210 L 90 290 L 0 320
+        L -90 290 L -160 210 L -210 90 L -220 -30 L -180 -120 L -195 -180 L -160 -250 L -90 -290 Z
+      " fill="#090d16" />
+
+      <!-- ============================================================ -->
+      <!-- Symmetrical Low-Poly Mascot: The Sentinel Honey Badger /     -->
+      <!-- Mongoose Guardian (Impervious to Poison and Backdoor Injections) -->
+      <!-- ============================================================ -->
+
+      <!-- Outer Neck & Shoulder Armor (Dark Obsidian / Slate) -->
+      <!-- Right Side -->
+      <polygon points="0,320 90,290 160,210 60,190 0,230" fill="#0f172a" />
+      <polygon points="160,210 210,90 150,70 60,190" fill="#1e293b" />
+      <polygon points="210,90 220,-30 140,-20 150,70" fill="#0f172a" />
+      <polygon points="220,-30 180,-120 120,-80 140,-20" fill="#1e293b" />
+      <polygon points="180,-120 195,-180 130,-150 120,-80" fill="#334155" />
+      <!-- Left Side -->
+      <polygon points="0,320 -90,290 -160,210 -60,190 0,230" fill="#0b0f19" />
+      <polygon points="-160,210 -210,90 -150,70 -60,190" fill="#1e293b" />
+      <polygon points="-210,90 -220,-30 -140,-20 -150,70" fill="#0f172a" />
+      <polygon points="-220,-30 -180,-120 -120,-80 -140,-20" fill="#1e293b" />
+      <polygon points="-180,-120 -195,-180 -130,-150 -120,-80" fill="#1e293b" />
+
+      <!-- Alert Erect Ears (Low-Poly Facets) -->
+      <!-- Right Ear -->
+      <polygon points="90,-290 160,-250 130,-190 80,-210" fill="#1e293b" />
+      <polygon points="110,-265 145,-235 125,-200 95,-215" fill="#00f5ff" opacity="0.3" />
+      <!-- Left Ear -->
+      <polygon points="-90,-290 -160,-250 -130,-190 -80,-210" fill="#0f172a" />
+      <polygon points="-110,-265 -145,-235 -125,-200 -95,-215" fill="#00f5ff" opacity="0.2" />
+
+      <!-- Titanium Mantle / Dorsal Crown (Signature Badger White/Slate Stripe) -->
+      <polygon points="0,-290 60,-280 80,-210 0,-215" fill="#cbd5e1" />
+      <polygon points="0,-290 -60,-280 -80,-210 0,-215" fill="#94a3b8" />
+      <polygon points="0,-215 80,-210 65,-120 0,-130" fill="#e2e8f0" />
+      <polygon points="0,-215 -80,-210 -65,-120 0,-130" fill="#cbd5e1" />
+      <polygon points="0,-130 65,-120 45,-30 0,-35" fill="#f8fafc" />
+      <polygon points="0,-130 -65,-120 -45,-30 0,-35" fill="#e2e8f0" />
+
+      <!-- Craniofacial Brow & Temple Armor -->
+      <polygon points="80,-210 130,-190 130,-150 65,-120" fill="#334155" />
+      <polygon points="-80,-210 -130,-190 -130,-150 -65,-120" fill="#1e293b" />
+      <polygon points="65,-120 130,-150 120,-80 55,-70" fill="#475569" />
+      <polygon points="-65,-120 -130,-150 -120,-80 -55,-70" fill="#1e293b" />
+
+      <!-- Cheeks & Aerodynamic Muzzle Contour -->
+      <polygon points="55,-70 120,-80 100,-10 40,-15" fill="#334155" />
+      <polygon points="-55,-70 -120,-80 -100,-10 -40,-15" fill="#1e293b" />
+      <polygon points="40,-15 100,-10 80,50 30,40" fill="#475569" />
+      <polygon points="-40,-15 -100,-10 -80,50 -30,40" fill="#1e293b" />
+
+      <!-- Nose Bridge & Compact Muzzle (Titanium-Slate Tones, Zero Buck Teeth) -->
+      <polygon points="0,-35 45,-30 30,40 0,45" fill="#94a3b8" />
+      <polygon points="0,-35 -45,-30 -30,40 0,45" fill="#64748b" />
+      <polygon points="0,45 30,40 20,70 0,75" fill="#475569" />
+      <polygon points="0,45 -30,40 -20,70 0,75" fill="#334155" />
+
+      <!-- Obsidian Nose Keystone -->
+      <polygon points="0,45 15,42 0,60 -15,42" fill="#090d16" />
+
+      <!-- ============================================================ -->
+      <!-- Predatory Slanted Almond Optics (Electric Cyan / Emerald)    -->
+      <!-- ============================================================ -->
+      <!-- Right Eye Socket & Lens -->
+      <polygon points="35,-80 75,-75 60,-55 25,-60" fill="#090d16" />
+      <polygon points="38,-77 70,-73 57,-58 30,-62" fill="url(#antidote-cyan)" />
+      <polygon points="48,-73 58,-71 52,-64" fill="#ffffff" />
+
+      <!-- Left Eye Socket & Lens -->
+      <polygon points="-35,-80 -75,-75 -60,-55 -25,-60" fill="#090d16" />
+      <polygon points="-38,-77 -70,-73 -57,-58 -30,-62" fill="url(#antidote-cyan)" />
+      <polygon points="-48,-73 -58,-71 -52,-64" fill="#ffffff" />
+
+      <!-- ============================================================ -->
+      <!-- Chest Core: Spectral Signature Vector Crystal (The Probe)    -->
+      <!-- ============================================================ -->
+      <polygon points="0,90 60,140 0,220 -60,140" fill="#090d16" stroke="#00f5ff" stroke-width="4" stroke-linejoin="round" />
+      <polygon points="0,105 45,142 0,205 -45,142" fill="#0f172a" />
+      <!-- Antidote Crystal Facets -->
+      <polygon points="0,105 45,142 0,160" fill="url(#antidote-cyan)" opacity="0.9" />
+      <polygon points="0,105 -45,142 0,160" fill="url(#antidote-cyan)" opacity="0.6" />
+      <polygon points="45,142 0,205 0,160" fill="url(#emerald-glow)" opacity="0.9" />
+      <polygon points="-45,142 0,205 0,160" fill="url(#emerald-glow)" opacity="0.7" />
+
+      <!-- Symmetrical Chest Plating Lines -->
+      <line x1="0" y1="220" x2="0" y2="310" stroke="#00f5ff" stroke-width="3" opacity="0.7" />
+      <line x1="-60" y1="140" x2="-120" y2="170" stroke="#00f5ff" stroke-width="2" opacity="0.4" stroke-dasharray="6, 6" />
+      <line x1="60" y1="140" x2="120" y2="170" stroke="#00f5ff" stroke-width="2" opacity="0.4" stroke-dasharray="6, 6" />
+
+    </g>
+  </g>
+</svg>
