@@ -37,6 +37,7 @@ func (s *ServerState) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/health", s.handleHealth)
 	mux.HandleFunc("/api/audit", s.handleGetAudit)
 	mux.HandleFunc("/api/samples", s.handleGetSamples)
+	mux.HandleFunc("/api/samples/batch-override", s.handleBatchOverride)
 	mux.HandleFunc("/api/samples/", s.handleSampleDetailOrOverride)
 	mux.HandleFunc("/api/rescan", s.handleRescan)
 	mux.HandleFunc("/api/export", s.handleExport)
@@ -161,6 +162,80 @@ func (s *ServerState) handleSampleDetailOrOverride(w http.ResponseWriter, r *htt
 	}
 
 	http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+}
+
+type batchOverrideRequest struct {
+	IDs    []string `json:"ids"`
+	Status string   `json:"status"`
+}
+
+func (s *ServerState) handleBatchOverride(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req batchOverrideRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	validStatuses := map[string]bool{
+		config.StatusClean:       true,
+		config.StatusQuarantined: true,
+		config.StatusRestored:    true,
+	}
+	if !validStatuses[req.Status] {
+		http.Error(w, "invalid status", http.StatusBadRequest)
+		return
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	idMap := make(map[string]bool)
+	for _, id := range req.IDs {
+		idMap[id] = true
+	}
+
+	modified := 0
+	for _, sample := range s.result.Samples {
+		if idMap[sample.ID] {
+			sample.Status = req.Status
+			modified++
+		}
+	}
+
+	// Recalculate summary metrics
+	var clean, quarantined, restored int
+	for _, smp := range s.result.Samples {
+		switch smp.Status {
+		case config.StatusClean:
+			clean++
+		case config.StatusQuarantined:
+			quarantined++
+		case config.StatusRestored:
+			restored++
+		}
+	}
+	s.result.Summary.CleanCount = clean
+	s.result.Summary.QuarantineCount = quarantined
+	s.result.Summary.RestoredCount = restored
+	if len(s.result.Samples) > 0 {
+		s.result.Summary.ContaminationRate = float64(quarantined) / float64(len(s.result.Samples))
+	}
+
+	s.hub.Broadcast(map[string]interface{}{
+		"type":           "batch_updated",
+		"modified_count": modified,
+		"new_status":     req.Status,
+	})
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"status":   "success",
+		"modified": modified,
+	})
 }
 
 type overrideRequest struct {
@@ -299,10 +374,22 @@ func (s *ServerState) handleRescan(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusAccepted, map[string]string{"status": "rescan initiated"})
 }
 
+type exportRequest struct {
+	Format string `json:"format"`
+}
+
 func (s *ServerState) handleExport(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
+	}
+
+	var req exportRequest
+	// Optional body parsing
+	json.NewDecoder(r.Body).Decode(&req)
+	format := strings.ToLower(strings.TrimSpace(req.Format))
+	if format == "" {
+		format = "parquet"
 	}
 
 	s.mu.Lock()
@@ -325,11 +412,20 @@ func (s *ServerState) handleExport(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	cleanPath := "clean.parquet"
+	cleanPath := "clean." + format
+	if format == "jsonl" {
+		cleanPath = "clean.jsonl"
+	} else if format == "csv" {
+		cleanPath = "clean.csv"
+	} else {
+		cleanPath = "clean.parquet"
+		format = "parquet"
+	}
+
 	quarantinePath := "quarantine.json"
 	auditPath := "audit.json"
 
-	cleanHash, err := sanitize.ExportClean(cleanPath, "parquet", cleanPool)
+	cleanHash, err := sanitize.ExportClean(cleanPath, format, cleanPool)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return

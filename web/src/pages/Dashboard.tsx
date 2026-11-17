@@ -4,12 +4,14 @@ import { DatasetHealthCard } from '../components/DatasetHealthCard';
 import { EmbeddingScatter } from '../components/EmbeddingScatter';
 import { SampleInspector } from '../components/SampleInspector';
 import { PmiBarChart } from '../components/PmiBarChart';
+import { ScoreHistogram } from '../components/ScoreHistogram';
 import { QuarantineActions } from '../components/QuarantineActions';
 
 export const Dashboard: React.FC = () => {
   const [summary, setSummary] = useState<AuditSummary | null>(null);
   const [samples, setSamples] = useState<Sample[]>([]);
   const [selectedSample, setSelectedSample] = useState<Sample | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [filterTrigger, setFilterTrigger] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isScanning, setIsScanning] = useState<boolean>(false);
@@ -30,7 +32,6 @@ export const Dashboard: React.FC = () => {
         const samData = await samplesRes.json();
         setSamples(samData.samples || []);
         if (samData.samples && samData.samples.length > 0 && !selectedSample) {
-          // Select first quarantined sample or first sample
           const firstQuarantined = samData.samples.find((s: Sample) => s.status === 'quarantined');
           setSelectedSample(firstQuarantined || samData.samples[0]);
         }
@@ -43,7 +44,6 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     fetchData();
 
-    // Listen for SSE events
     const evtSource = new EventSource('/api/events');
     evtSource.onmessage = (e) => {
       try {
@@ -83,7 +83,6 @@ export const Dashboard: React.FC = () => {
           setSelectedSample({ ...selectedSample, status: newStatus });
         }
         showToast(`Sample ${id} status updated to ${newStatus}.`);
-        // Refresh summary metrics
         const summaryRes = await fetch('/api/audit');
         if (summaryRes.ok) {
           setSummary(await summaryRes.json());
@@ -91,6 +90,31 @@ export const Dashboard: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to update status:', err);
+    }
+  };
+
+  const handleBatchStatus = async (newStatus: 'clean' | 'quarantined' | 'restored') => {
+    if (selectedIds.length === 0) return;
+    try {
+      const res = await fetch('/api/samples/batch-override', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedIds, status: newStatus }),
+      });
+      if (res.ok) {
+        const idSet = new Set(selectedIds);
+        setSamples((prev) =>
+          prev.map((s) => (idSet.has(s.id) ? { ...s, status: newStatus } : s))
+        );
+        showToast(`Batch updated ${selectedIds.length} samples to ${newStatus}.`);
+        setSelectedIds([]);
+        const summaryRes = await fetch('/api/audit');
+        if (summaryRes.ok) {
+          setSummary(await summaryRes.json());
+        }
+      }
+    } catch (err) {
+      console.error('Batch update failed:', err);
     }
   };
 
@@ -112,13 +136,17 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  const handleExport = async () => {
+  const handleExport = async (format: string = 'parquet') => {
     setIsExporting(true);
     try {
-      const res = await fetch('/api/export', { method: 'POST' });
+      const res = await fetch('/api/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ format }),
+      });
       if (res.ok) {
         const result = await res.json();
-        showToast(`Exported ${result.clean_count} clean records to ${result.clean_path}`);
+        showToast(`Exported ${result.clean_count} records to ${result.clean_path}`);
       } else {
         showToast('Export failed.');
       }
@@ -152,6 +180,12 @@ export const Dashboard: React.FC = () => {
       {/* Health Scorecard */}
       <DatasetHealthCard summary={summary} />
 
+      {/* Spectral Score Distribution Histogram */}
+      <ScoreHistogram
+        samples={samples}
+        threshold={summary?.threshold_cutoff || 0.07}
+      />
+
       {/* Actions & Filters Bar */}
       <QuarantineActions
         sensitivity={summary?.threshold_cutoff ? 3.0 : 3.0}
@@ -161,6 +195,9 @@ export const Dashboard: React.FC = () => {
         isExporting={isExporting}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        selectedCount={selectedIds.length}
+        onBatchQuarantine={() => handleBatchStatus('quarantined')}
+        onBatchRestore={() => handleBatchStatus('restored')}
       />
 
       {/* Main Grid: Scatter Plot + Inspector */}

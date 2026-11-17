@@ -12,6 +12,7 @@ import (
 
 	"github.com/alexandrmotologa/poisonprobe/internal/config"
 	"github.com/alexandrmotologa/poisonprobe/internal/embedding"
+	"github.com/alexandrmotologa/poisonprobe/internal/entropy"
 	"github.com/alexandrmotologa/poisonprobe/internal/ingestion"
 	"github.com/alexandrmotologa/poisonprobe/internal/ngrams"
 	"github.com/alexandrmotologa/poisonprobe/internal/sanitize"
@@ -64,7 +65,17 @@ func (e *Engine) Run(datasetPath string, cb ProgressCallback) (*AuditResult, err
 
 	// 1. Ingestion
 	cb("ingestion", 10.0, "Streaming dataset records from disk...")
-	reader, err := ingestion.OpenDatasetReader(datasetPath, e.cfg.Columns)
+	actualPath := datasetPath
+	if ingestion.IsRemoteURL(datasetPath) {
+		spoolPath, cleanup, err := ingestion.FetchRemoteDataset(datasetPath)
+		if err != nil {
+			return nil, fmt.Errorf("remote fetch error: %w", err)
+		}
+		defer cleanup()
+		actualPath = spoolPath
+	}
+
+	reader, err := ingestion.OpenDatasetReader(actualPath, e.cfg.Columns)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open dataset: %w", err)
 	}
@@ -79,7 +90,7 @@ func (e *Engine) Run(datasetPath string, cb ProgressCallback) (*AuditResult, err
 	}
 
 	// Compute input file SHA-256
-	inputSHA, _ := sanitize.ComputeFileSHA256(datasetPath)
+	inputSHA, _ := sanitize.ComputeFileSHA256(actualPath)
 
 	// 2. Vectorization
 	cb("vectorization", 30.0, fmt.Sprintf("Computing representations for %d samples...", len(samples)))
@@ -160,6 +171,23 @@ func (e *Engine) Run(datasetPath string, cb ProgressCallback) (*AuditResult, err
 		}
 	}
 
+	// Secret and credential leakage detection
+	for i, s := range samples {
+		if s.Output != "" {
+			secrets := entropy.ScanForSecrets(s.Output)
+			if len(secrets) > 0 {
+				anomalySet[i] = true
+				if s.QuarantineReason == "" {
+					s.QuarantineReason = "secret_leak"
+				}
+				if s.Metadata == nil {
+					s.Metadata = make(map[string]interface{})
+				}
+				s.Metadata["detected_secrets"] = secrets
+			}
+		}
+	}
+
 	// Label noise and contradiction detection
 	if e.cfg.LabelNoise.Enabled && len(samples) > 1 {
 		noisyIndices := e.detectLabelNoise(samples, matrix, e.cfg.LabelNoise)
@@ -172,6 +200,13 @@ func (e *Engine) Run(datasetPath string, cb ProgressCallback) (*AuditResult, err
 	for idx := range anomalySet {
 		combinedOutliers = append(combinedOutliers, idx)
 	}
+
+	// Multi-cluster analysis in 3D projection space
+	var v3 []float64
+	if len(specResult.Eigenvectors) > 2 {
+		v3 = specResult.Eigenvectors[2]
+	}
+	spectral.ClusterOutliers(samples, combinedOutliers, specResult.MeanVector, specResult.Eigenvectors[0], v2, v3)
 
 	// 5. Partitioning
 	cb("partitioning", 90.0, "Partitioning certified clean and quarantined pools...")

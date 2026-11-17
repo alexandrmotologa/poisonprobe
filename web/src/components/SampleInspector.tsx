@@ -102,7 +102,7 @@ export const SampleInspector: React.FC<SampleInspectorProps> = ({
       </div>
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-3 gap-2.5 mb-4 text-xs">
+      <div className="grid grid-cols-4 gap-2 mb-4 text-xs">
         <div className="bg-slate-950/60 border border-slate-800/60 rounded p-2">
           <span className="text-slate-400 block text-[11px]">Spectral Outlier Score</span>
           <span className="font-mono font-bold text-white text-sm">
@@ -116,12 +116,39 @@ export const SampleInspector: React.FC<SampleInspectorProps> = ({
           </span>
         </div>
         <div className="bg-slate-950/60 border border-slate-800/60 rounded p-2">
+          <span className="text-slate-400 block text-[11px]">Cluster</span>
+          <span className="font-mono text-indigo-300 text-xs font-bold">
+            {sample.cluster_id ? `Cluster #${sample.cluster_id}` : 'Unclustered'}
+          </span>
+        </div>
+        <div className="bg-slate-950/60 border border-slate-800/60 rounded p-2">
           <span className="text-slate-400 block text-[11px]">2D Coordinate</span>
           <span className="font-mono text-slate-300 text-xs">
             ({sample.projected_x.toFixed(2)}, {sample.projected_y.toFixed(2)})
           </span>
         </div>
       </div>
+
+      {/* Secret / Credential Leak Alert */}
+      {sample.metadata && sample.metadata.detected_secrets && (
+        <div className="mb-4 p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-xs text-rose-200 flex items-start gap-2">
+          <AlertOctagon className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+          <div className="w-full">
+            <span className="font-bold text-rose-300 uppercase tracking-wide">
+              Critical: Secret & Credential Exfiltration Detected:
+            </span>
+            <div className="space-y-1 mt-1">
+              {(sample.metadata.detected_secrets as any[]).map((sec, i) => (
+                <div key={i} className="flex items-center justify-between font-mono text-[11px] bg-slate-950/70 p-1.5 rounded">
+                  <span className="text-rose-400 font-bold">{sec.type}</span>
+                  <span className="text-slate-400 truncate max-w-[180px]">{sec.pattern}</span>
+                  <span className="text-slate-500 text-[10px]">H={sec.entropy}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Suspicious Tokens Warning */}
       {sample.suspicious_tokens && sample.suspicious_tokens.length > 0 && (

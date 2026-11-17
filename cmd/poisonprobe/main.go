@@ -9,6 +9,7 @@ import (
 	"github.com/alexandrmotologa/poisonprobe/internal/audit"
 	"github.com/alexandrmotologa/poisonprobe/internal/config"
 	"github.com/alexandrmotologa/poisonprobe/internal/sanitize"
+	"github.com/alexandrmotologa/poisonprobe/internal/sarif"
 	"github.com/alexandrmotologa/poisonprobe/internal/server"
 )
 
@@ -19,8 +20,9 @@ func printUsage() {
 	fmt.Println("Usage:")
 	fmt.Println("  poisonprobe <command> [arguments] [flags]")
 	fmt.Println("\nCommands:")
-	fmt.Println("  scan      Analyze dataset and print anomaly statistics and triggers")
-	fmt.Println("  sanitize  Export clean certified dataset, quarantine report, and audit manifest")
+	fmt.Println("  scan      Analyze dataset and print anomaly statistics, triggers, or export SARIF")
+	fmt.Println("  sanitize  Export clean certified dataset, quarantine report, or neutralized samples")
+	fmt.Println("  diff      Compare two dataset revisions and report security posture delta")
 	fmt.Println("  studio    Launch interactive React 19 Quarantine Studio on local HTTP")
 	fmt.Println("  cert      Cryptographic attestation and integrity verification")
 	fmt.Println("  version   Print version information")
@@ -39,6 +41,8 @@ func main() {
 		runScan(os.Args[2:])
 	case "sanitize":
 		runSanitize(os.Args[2:])
+	case "diff":
+		runDiff(os.Args[2:])
 	case "studio":
 		runStudio(os.Args[2:])
 	case "cert":
@@ -53,6 +57,26 @@ func main() {
 	}
 }
 
+func reorderArgs(args []string) []string {
+	var flags []string
+	var pos []string
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if strings.HasPrefix(arg, "-") {
+			flags = append(flags, arg)
+			if !strings.Contains(arg, "=") && i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
+				if arg != "-v" && arg != "--verbose" && arg != "--no-open" && arg != "--fail-on-trigger" {
+					i++
+					flags = append(flags, args[i])
+				}
+			}
+		} else {
+			pos = append(pos, arg)
+		}
+	}
+	return append(flags, pos...)
+}
+
 func runScan(args []string) {
 	fs := flag.NewFlagSet("scan", flag.ExitOnError)
 	cfgPath := fs.String("config", "", "Path to YAML configuration file")
@@ -61,9 +85,12 @@ func runScan(args []string) {
 	instrCol := fs.String("instruction-col", "", "Custom instruction column name")
 	inputCol := fs.String("input-col", "", "Custom input column name")
 	outputCol := fs.String("output-col", "", "Custom output column name")
+	sarifPath := fs.String("sarif", "", "Path to export OASIS SARIF v2.1.0 security report")
+	failContam := fs.Float64("fail-on-contamination", 0.05, "Maximum allowable contamination rate before failure (e.g. 0.03)")
+	failTrigger := fs.Bool("fail-on-trigger", false, "Exit with error code 1 if any high-confidence trigger is mined")
 	verbose := fs.Bool("verbose", false, "Verbose execution logs")
 
-	fs.Parse(args)
+	fs.Parse(reorderArgs(args))
 	remaining := fs.Args()
 	if len(remaining) < 1 {
 		fmt.Fprintln(os.Stderr, "Error: missing dataset file path.")
@@ -111,9 +138,51 @@ func runScan(args []string) {
 	// Print Formatted Terminal Results
 	printAuditReport(result)
 
-	if result.Summary.ContaminationRate > 0.05 {
+	// Export SARIF if requested
+	if *sarifPath != "" {
+		fmt.Printf("Writing SARIF v2.1.0 security report to %s...\n", *sarifPath)
+		if err := sarif.WriteSARIF(*sarifPath, datasetPath, result.Partition.Quarantined); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to export SARIF: %v\n", err)
+		} else {
+			fmt.Printf("[OK] SARIF report generated (%d security alerts)\n", len(result.Partition.Quarantined))
+		}
+	}
+
+	// CI Gate checks
+	if result.Summary.ContaminationRate > *failContam {
+		fmt.Fprintf(os.Stderr, "[CI GATE FAILED] Contamination rate %.2f%% exceeds threshold %.2f%%\n",
+			result.Summary.ContaminationRate*100, *failContam*100)
 		os.Exit(1)
 	}
+
+	if *failTrigger && len(result.TriggerTokens) > 0 {
+		fmt.Fprintf(os.Stderr, "[CI GATE FAILED] Backdoor trigger tokens detected in dataset\n")
+		os.Exit(1)
+	}
+}
+
+func runDiff(args []string) {
+	if len(args) < 2 {
+		fmt.Fprintln(os.Stderr, "Error: missing dataset paths for comparison.")
+		fmt.Fprintln(os.Stderr, "Usage: poisonprobe diff <baseline_dataset> <target_dataset>")
+		os.Exit(1)
+	}
+
+	pathA := args[0]
+	pathB := args[1]
+
+	cfg := config.DefaultConfig()
+	engine := audit.NewEngine(cfg)
+
+	fmt.Printf("\n[poisonprobe] Comparing datasets: %s vs %s...\n", pathA, pathB)
+	diff, err := engine.CompareDatasets(pathA, pathB)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Comparison failed: %v\n", err)
+		os.Exit(1)
+	}
+
+	report := audit.FormatDiffReport(diff)
+	fmt.Print(report)
 }
 
 func runSanitize(args []string) {
@@ -124,8 +193,10 @@ func runSanitize(args []string) {
 	attestationPath := fs.String("a", "audit.json", "Output path for cryptographic safety passport")
 	format := fs.String("format", "", "Output format: 'parquet' or 'jsonl'")
 	sensitivity := fs.Float64("sensitivity", 3.0, "Anomaly threshold sensitivity multiplier (k)")
+	mode := fs.String("mode", "quarantine", "Sanitization mode: 'quarantine' (remove poisoned records) or 'neutralize' (strip triggers)")
+	neutralizePath := fs.String("neutralize-path", "neutralized.parquet", "Output path for neutralized records")
 
-	fs.Parse(args)
+	fs.Parse(reorderArgs(args))
 	remaining := fs.Args()
 	if len(remaining) < 1 {
 		fmt.Fprintln(os.Stderr, "Error: missing dataset file path.")
@@ -143,7 +214,7 @@ func runSanitize(args []string) {
 		cfg.Spectral.Sensitivity = *sensitivity
 	}
 
-	fmt.Printf("\n[poisonprobe] Sanitizing dataset: %s\n", datasetPath)
+	fmt.Printf("\n[poisonprobe] Sanitizing dataset: %s (mode: %s)\n", datasetPath, *mode)
 	engine := audit.NewEngine(cfg)
 
 	result, err := engine.Run(datasetPath, func(phase string, pct float64, msg string) {
@@ -152,6 +223,20 @@ func runSanitize(args []string) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Sanitization failed: %v\n", err)
 		os.Exit(1)
+	}
+
+	// Trigger Neutralization Mode
+	if *mode == "neutralize" {
+		fmt.Printf("\nNeutralizing triggers across %d quarantined samples...\n", len(result.Partition.Quarantined))
+		detoxRes := sanitize.NeutralizeTriggers(result.Partition.Quarantined, result.TriggerTokens)
+		fmt.Printf("Disarmed triggers in %d samples. Writing to %s...\n", detoxRes.NeutralizedCount, *neutralizePath)
+		allClean := append(result.Partition.Clean, detoxRes.Neutralized...)
+		if _, err := sanitize.ExportClean(*neutralizePath, *format, allClean); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to export neutralized dataset: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("[OK] Neutralized dataset exported with %d retained records.\n", len(allClean))
+		return
 	}
 
 	// Export Clean Records
@@ -197,7 +282,7 @@ func runStudio(args []string) {
 	host := fs.String("host", "127.0.0.1", "HTTP bind address")
 	noOpen := fs.Bool("no-open", false, "Do not automatically launch web browser")
 
-	fs.Parse(args)
+	fs.Parse(reorderArgs(args))
 	remaining := fs.Args()
 	if len(remaining) < 1 {
 		fmt.Fprintln(os.Stderr, "Error: missing dataset file path.")

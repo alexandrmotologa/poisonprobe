@@ -7,6 +7,7 @@ export interface Sample {
   spectral_score: number;
   status: 'clean' | 'quarantined' | 'restored';
   quarantine_reason?: string;
+  cluster_id?: number;
   projected_x: number;
   projected_y: number;
   suspicious_tokens?: string[];

@@ -31,6 +31,7 @@ type Sample struct {
 	SpectralScore    float64                `json:"spectral_score"`
 	Status           string                 `json:"status"` // "clean", "quarantined", "restored"
 	QuarantineReason string                 `json:"quarantine_reason,omitempty"`
+	ClusterID        int                    `json:"cluster_id,omitempty"`
 	ProjectedX       float64                `json:"projected_x"`
 	ProjectedY       float64                `json:"projected_y"`
 	SuspiciousTokens []string               `json:"suspicious_tokens,omitempty"`

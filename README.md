@@ -2,16 +2,21 @@
 
 > Dataset security auditor and backdoor scanner for LLM fine-tuning datasets with spectral signatures and quarantine studio.
 
-poisonprobe scans instruction and fine-tuning datasets (JSONL, Parquet, CSV) to detect and isolate data poisoning, sleeper backdoors, and label noise before model training. It operates as a single Go binary with an embedded React 19 Quarantine Studio, using under 25MB of RAM during streaming operations.
+poisonprobe scans instruction and fine-tuning datasets (JSONL, Parquet, CSV) to detect and isolate data poisoning, sleeper backdoors, secret exfiltration, and label noise before model training. It operates as a single Go binary with an embedded React 19 Quarantine Studio, consuming under 4MB of RAM during streaming operations.
 
 ## Capabilities
 
 - **Spectral signature analysis**: Identifies poisoned clusters by projecting sample representations onto the leading eigenvectors of representation covariance matrices via power iteration.
 - **Trigger token mining**: Discovers stealthy backdoor triggers and covert unicode injections using Normalized Pointwise Mutual Information (NPMI).
-- **Label noise detection**: Detects semantic divergence between high-similarity instructions and their target completions.
+- **Secret and credential leakage scanner**: Detects high-entropy tokens, AWS keys, API credentials, and internal IPv4 addresses within target completions.
+- **Multi-cluster spectral analysis**: Groups outlier samples in 3D projection space into distinct attack campaigns via k-means.
+- **SARIF v2.1.0 security reporting**: Generates OASIS SARIF reports for native GitHub Code Scanning and CI/CD security tabs.
 - **Automated dataset partitioning**: Generates clean certified datasets (`clean.parquet`) and structured quarantine logs (`quarantine.json`).
+- **Trigger neutralization mode**: Disarms and strips detected trigger tokens from instructions instead of dropping samples.
+- **Dataset revision diffing**: Compares two dataset versions with `poisonprobe diff` to verify security improvements or flag regressions.
+- **Remote streaming ingestion**: Scans public or presigned HTTP/HTTPS URLs directly without manual file downloads.
 - **Cryptographic safety attestation**: Produces SHA-256 signed audit passports (`audit.json`) for CI/CD gates.
-- **Embedded Quarantine Studio**: Local web console on port 7474 for 2D embedding visualization, trigger inspection, and manual review overrides.
+- **Embedded Quarantine Studio**: Local web console on port 7474 with 2D projection scatter plots, score density histograms, trigger inspector, and batch review actions.
 
 ## Installation
 
@@ -25,29 +30,19 @@ cd poisonprobe
 make build
 ```
 
-This compiles the React 19 frontend and builds the single `poisonprobe` executable into the current directory.
-
-### Quick Run
-
-```bash
-# Scan a dataset in the terminal
-./poisonprobe scan ./examples/test_datasets/poisoned_sleeper_backdoor.jsonl
-
-# Sanitize and produce certified outputs
-./poisonprobe sanitize ./examples/test_datasets/poisoned_sleeper_backdoor.jsonl -o clean.parquet -q quarantine.json
-
-# Launch the interactive Quarantine Studio
-./poisonprobe studio ./examples/test_datasets/poisoned_sleeper_backdoor.jsonl
-```
+This compiles the React 19 frontend and builds the single `poisonprobe` executable into the root directory.
 
 ## Quick Start Guide
 
-### 1. Terminal Scan
+### 1. Terminal Scan and CI Quality Gate
 
-Scan any instruction dataset directly:
+Scan an instruction dataset and enforce a strict contamination threshold:
 
 ```bash
-./poisonprobe scan ./examples/test_datasets/poisoned_sleeper_backdoor.jsonl
+./poisonprobe scan ./examples/test_datasets/poisoned_sleeper_backdoor.jsonl \
+  --sarif ./results.sarif \
+  --fail-on-contamination 0.05 \
+  --fail-on-trigger
 ```
 
 Output summary displays:
@@ -55,8 +50,9 @@ Output summary displays:
 - Contamination rate and anomaly count
 - Top detected trigger tokens by NPMI score
 - Clean yield percentage
+- SARIF v2.1.0 report generation for CI/CD
 
-### 2. Dataset Sanitization
+### 2. Dataset Sanitization and Neutralization
 
 Partition corrupted records and export a certified clean split:
 
@@ -67,7 +63,23 @@ Partition corrupted records and export a certified clean split:
   --attestation ./data/audit.json
 ```
 
-### 3. Interactive Quarantine Studio
+Or neutralize triggers while retaining instruction utility:
+
+```bash
+./poisonprobe sanitize ./data/raw_instructions.jsonl \
+  --mode neutralize \
+  --neutralize-path ./data/neutralized.parquet
+```
+
+### 3. Dataset Revision Comparison
+
+Compare baseline datasets against updated deliveries:
+
+```bash
+./poisonprobe diff ./data/baseline.jsonl ./data/delivery_v2.jsonl
+```
+
+### 4. Interactive Quarantine Studio
 
 Launch the embedded visual studio:
 
@@ -77,11 +89,13 @@ Launch the embedded visual studio:
 
 Navigate to `http://localhost:7474` to access:
 - **2D Embedding Projection**: Interactive scatter plot showing clean and anomalous clusters.
-- **Sample Inspector**: Side-by-side prompt and completion viewer with highlighted trigger substrings.
+- **Spectral Score Density Histogram**: Visual distribution curve showing cutoff boundary $\theta$.
+- **Sample Inspector**: Side-by-side prompt and completion viewer with highlighted trigger substrings and secret leakage alerts.
 - **PMI Chart**: Ranked distribution of suspicious tokens.
-- **Manual Review**: Confirm quarantine or restore false positives.
+- **Batch Actions**: Multi-select samples to quarantine or restore in bulk.
+- **Multi-Format Export**: Download certified records directly in Parquet, JSONL, or CSV formats.
 
-### 4. CI/CD Safety Gate
+### 5. Cryptographic Attestation Verification
 
 Verify that a sanitized dataset matches its attestation manifest before starting a fine-tuning job:
 
@@ -89,7 +103,7 @@ Verify that a sanitized dataset matches its attestation manifest before starting
 ./poisonprobe cert verify ./data/clean.parquet ./data/audit.json
 ```
 
-Exit code is `0` if verification passes and `1` if hashes or thresholds fail.
+Exit code is `0` if verification passes and `1` if hashes or signature checks fail.
 
 ## Configuration
 
@@ -109,6 +123,11 @@ trigger_mining:
   min_frequency: 3      # minimum token occurrences
   min_npmi: 0.65        # NPMI threshold for trigger classification
   detect_covert_unicode: true
+
+label_noise:
+  enabled: true
+  prompt_sim_threshold: 0.85
+  output_div_threshold: 0.70
 
 export:
   format: "parquet"
