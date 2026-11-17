@@ -75,8 +75,8 @@ export const EmbeddingScatter: React.FC<EmbeddingScatterProps> = ({
   };
 
   return (
-    <div className="bg-slate-900/80 border border-slate-800/90 rounded-xl p-4 sm:p-5 shadow-xl flex flex-col h-[440px] lg:h-full backdrop-blur-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pb-3 border-b border-slate-800">
+    <div className="bg-slate-900/80 border border-slate-800/90 rounded-xl p-3.5 sm:p-5 shadow-xl flex flex-col h-[440px] lg:h-full backdrop-blur-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3 pb-3 border-b border-slate-800">
         <div>
           <h3 className="text-sm font-semibold text-white tracking-wide flex items-center gap-2">
             Spectral Representation Projection (v₁ vs. v₂)
@@ -87,7 +87,7 @@ export const EmbeddingScatter: React.FC<EmbeddingScatterProps> = ({
         </div>
 
         {/* View Controls & Filters */}
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2">
           {filterTrigger && (
             <div className="flex items-center space-x-1.5 px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 rounded-md text-amber-300 text-xs">
               <Filter className="w-3 h-3" />

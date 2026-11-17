@@ -62,13 +62,13 @@ export const ScoreHistogram: React.FC<ScoreHistogramProps> = ({
   const thresholdX = span > 0 ? Math.min(width, Math.max(0, ((threshold - minScore) / span) * width)) : width / 2;
 
   return (
-    <div className="bg-slate-900/80 border border-slate-800/90 rounded-xl p-4 shadow-xl backdrop-blur-sm">
-      <div className="flex items-center justify-between mb-2">
+    <div className="bg-slate-900/80 border border-slate-800/90 rounded-xl p-3.5 sm:p-4 shadow-xl backdrop-blur-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-2.5">
         <div className="flex items-center space-x-2 text-xs font-semibold text-white">
-          <BarChart2 className="w-4 h-4 text-indigo-400" />
-          <span>Spectral Score Density & Separation Boundary</span>
+          <BarChart2 className="w-4 h-4 text-indigo-400 shrink-0" />
+          <span className="truncate">Spectral Score Density & Separation Boundary</span>
         </div>
-        <div className="flex items-center space-x-3 text-[11px] font-mono text-slate-400">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-mono text-slate-400">
           <span>Min: {minScore.toFixed(4)}</span>
           <span className="text-rose-400 font-bold">Cutoff θ: {threshold.toFixed(4)}</span>
           <span>Max: {maxScore.toFixed(4)}</span>

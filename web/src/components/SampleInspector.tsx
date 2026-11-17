@@ -102,27 +102,27 @@ export const SampleInspector: React.FC<SampleInspectorProps> = ({
       </div>
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-4 gap-2 mb-4 text-xs">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4 text-xs">
         <div className="bg-slate-950/60 border border-slate-800/60 rounded p-2">
-          <span className="text-slate-400 block text-[11px]">Spectral Outlier Score</span>
+          <span className="text-slate-400 block text-[11px] truncate">Spectral Outlier Score</span>
           <span className="font-mono font-bold text-white text-sm">
             {sample.spectral_score.toFixed(4)}
           </span>
         </div>
         <div className="bg-slate-950/60 border border-slate-800/60 rounded p-2">
-          <span className="text-slate-400 block text-[11px]">Reason</span>
-          <span className="font-mono text-amber-300 text-xs uppercase font-medium">
+          <span className="text-slate-400 block text-[11px] truncate">Quarantine Reason</span>
+          <span className="font-mono text-amber-300 text-xs uppercase font-medium truncate block" title={sample.quarantine_reason || 'Spectral Outlier'}>
             {sample.quarantine_reason || 'Spectral Outlier'}
           </span>
         </div>
         <div className="bg-slate-950/60 border border-slate-800/60 rounded p-2">
-          <span className="text-slate-400 block text-[11px]">Cluster</span>
-          <span className="font-mono text-indigo-300 text-xs font-bold">
+          <span className="text-slate-400 block text-[11px] truncate">Attack Campaign</span>
+          <span className="font-mono text-indigo-300 text-xs font-bold truncate block">
             {sample.cluster_id ? `Cluster #${sample.cluster_id}` : 'Unclustered'}
           </span>
         </div>
         <div className="bg-slate-950/60 border border-slate-800/60 rounded p-2">
-          <span className="text-slate-400 block text-[11px]">2D Coordinate</span>
+          <span className="text-slate-400 block text-[11px] truncate">2D Coordinate</span>
           <span className="font-mono text-slate-300 text-xs">
             ({sample.projected_x.toFixed(2)}, {sample.projected_y.toFixed(2)})
           </span>

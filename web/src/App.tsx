@@ -8,26 +8,27 @@ export const App: React.FC = () => {
       {/* Top Navigation Bar */}
       <header className="border-b border-slate-800 bg-slate-950/70 sticky top-0 z-40 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="p-1.5 bg-indigo-500/20 border border-indigo-500/40 rounded-lg text-indigo-400">
+          <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
+            <div className="p-1.5 bg-indigo-500/20 border border-indigo-500/40 rounded-lg text-indigo-400 shrink-0">
               <Shield className="w-5 h-5 text-indigo-400" />
             </div>
-            <div>
-              <span className="font-bold text-white tracking-tight text-sm">poisonprobe</span>
-              <span className="text-slate-400 text-xs ml-2 font-mono">Quarantine Studio v1.0</span>
+            <div className="flex items-baseline gap-2 min-w-0">
+              <span className="font-bold text-white tracking-tight text-sm whitespace-nowrap">poisonprobe</span>
+              <span className="hidden sm:inline text-slate-400 text-xs font-mono">Quarantine Studio v1.0</span>
             </div>
           </div>
 
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-1.5 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
-              <Radio className="w-3 h-3 animate-pulse" />
-              <span>Live Engine Connected</span>
+          <div className="flex items-center space-x-2.5 sm:space-x-4 shrink-0">
+            <div className="flex items-center space-x-1.5 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full whitespace-nowrap">
+              <Radio className="w-3 h-3 animate-pulse shrink-0" />
+              <span className="hidden xs:inline sm:inline">Live Engine Connected</span>
+              <span className="xs:hidden sm:hidden">Live</span>
             </div>
             <a
               href="https://github.com/alexandrmotologa/poisonprobe"
               target="_blank"
               rel="noreferrer"
-              className="text-slate-400 hover:text-white transition flex items-center"
+              className="text-slate-400 hover:text-white transition flex items-center p-1 rounded hover:bg-slate-800"
               title="GitHub Repository"
             >
               <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
